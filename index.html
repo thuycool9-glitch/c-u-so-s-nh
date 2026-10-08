@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comparison Master – English 9</title>
+<style>
+*{box-sizing:border-box}
+:root{--ink:#1b2a41;--bg:#fff4d6;--pri:#3b5bdb;--ok:#2fb344;--bad:#e03131;--card:#fff;--acc:#ffb703}
+body{margin:0;font-family:"Trebuchet MS","Segoe UI",sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;justify-content:center;padding:12px}
+#app{width:100%;max-width:760px}
+.card{background:var(--card);border-radius:22px;box-shadow:0 6px 0 #e9d9a6,0 10px 24px rgba(0,0,0,.08);padding:22px;margin-bottom:14px}
+h1{font-size:clamp(28px,7vw,46px);margin:.2em 0;line-height:1.1;text-align:center}
+h2{margin:.2em 0}
+.center{text-align:center}
+.btn{background:var(--pri);color:#fff;border:0;border-radius:14px;padding:13px 24px;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 4px 0 #2a40a0;margin:6px}
+.btn:active{transform:translateY(2px)}
+.btn.alt{background:var(--acc);color:var(--ink);box-shadow:0 4px 0 #c98a00}
+.top{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-weight:700}
+.bar{height:14px;background:#e8ecf7;border-radius:9px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--pri),var(--acc));width:0;transition:width .4s}
+.timer{height:10px;background:#eee;border-radius:6px;overflow:hidden}
+.timer i{display:block;height:100%;background:var(--ok);width:100%}
+.tag{display:inline-block;background:#e7ecff;color:var(--pri);border-radius:20px;padding:3px 12px;font-size:13px;font-weight:700;margin:2px 4px 2px 0}
+.q{font-size:clamp(19px,4.5vw,25px);font-weight:700;margin:12px 0;overflow-wrap:anywhere}
+.opt{display:block;width:100%;text-align:left;background:#f3f5fb;border:2px solid #d6dcf0;border-radius:14px;padding:12px 14px;margin:8px 0;font-size:clamp(16px,4vw,19px);cursor:pointer;color:var(--ink);overflow-wrap:anywhere}
+.opt:hover:not(:disabled){border-color:var(--pri)}
+.opt.ok{background:#d3f9d8;border-color:var(--ok)}
+.opt.no{background:#ffe3e3;border-color:var(--bad)}
+input.txt,select{width:100%;font-size:19px;padding:12px;border:2px solid #d6dcf0;border-radius:12px;margin:6px 0}
+.tok{display:inline-block;background:#fff3bf;border:2px solid #f0c000;border-radius:10px;padding:8px 12px;margin:4px;font-size:18px;cursor:pointer}
+.tok.used{opacity:.25;pointer-events:none}
+.ans{min-height:52px;border:2px dashed #aab;border-radius:12px;padding:6px;margin:8px 0}
+.mrow{display:grid;grid-template-columns:1fr 1.2fr;gap:8px;align-items:center}
+.fb{border-radius:16px;padding:14px;margin-top:12px}
+.fb.ok{background:#d3f9d8}.fb.no{background:#ffe3e3;animation:shake .4s}
+.fb h3{margin:0 0 6px;font-size:22px}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.cd{position:fixed;inset:0;display:none;align-items:center;justify-content:center;font-size:120px;font-weight:900;color:var(--bad);pointer-events:none;opacity:.35}
+.big{font-size:clamp(34px,9vw,56px);font-weight:900}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0}
+.stat{background:#f3f5fb;border-radius:14px;padding:10px;text-align:center}
+.stat b{display:block;font-size:24px}
+.row{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid #eee}
+.rev{border-bottom:1px solid #ddd;padding:10px 0;overflow-wrap:anywhere}
+.cf{position:fixed;top:-10px;width:10px;height:14px;z-index:9;pointer-events:none;animation:fall 1.6s linear forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.8}}
+@media(prefers-reduced-motion:reduce){.cf,.fb.no{animation:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="cd" id="cd"></div>
+<script>
+const LB={MC:"Multiple Choice",FB:"Fill in the blank",CS:"Choose the correct sentence",EC:"Error Correction",ST:"Sentence Transformation",MT:"Matching",AR:"Arrange the words",TF:"True / False",CH:"Challenge"};
+const GRP={A:"Comparatives",B:"Comparatives",C:"Comparatives",D:"Comparatives",E:"Comparatives",F:"Equality",G:"Equality",H:"Superlatives",I:"Double comparison",J:"Double comparison",K:"Multiple times",L:"Advanced"};
+// cat|type|label|question|answer|explanation   (mc: correct option first, shuffled at runtime)
+const RAW=`A|mc|MC|My sister is ______ than me.|taller~tall~tallest~more tall|Tall là tính từ ngắn → tall + er + than.
+A|fb|FB|This bag is ______ (light) than that one.|lighter|Tính từ ngắn: thêm -er → lighter.
+A|mc|MC|Jenny's grades are ______ her sister's.|higher than~more high than~highest than~high as|High là tính từ ngắn → higher than.
+A|mc|CS|Choose the correct sentence.|He is taller than me.~He is more taller than me.~He is tallest than me.~He is more tall than me.|Tính từ ngắn dùng adj-er, không thêm more.
+A|fb|FB|My girlfriend came ______ (late) than me.|later|Late đã có "e" nên chỉ thêm -r → later.
+A|ec|EC|Find the error: She is more happier than her sister.|more happier → happier~happier → more happy~is → are~than → then|Happy ngắn, y → i + er = happier. Không dùng more.
+A|st|ST|Tom is taller than John. → John is ______ Tom.|shorter than~not as tall as~not so tall as|Đảo nghĩa: taller than ↔ shorter than.
+A|ar|AR|Arrange the words.|My brother is faster than me.|Cấu trúc: S + be + adj-er + than + pronoun.
+A|mc|MC|This test was ______ than the last one.|easier~more easy~easyer~easiest|Easy kết thúc bằng y → easier.
+A|mc|MC|Lan runs ______ than Nam.|faster~fast~more fast~fastest|Fast là trạng từ ngắn → faster than.
+A|fb|FB|The weather today is ______ (cool) than yesterday.|cooler|Tính từ ngắn: cool + er.
+A|tf|TF|"He works harder than his brother." là câu đúng ngữ pháp.|True|Hard là trạng từ ngắn nên dùng harder than.
+A|mc|MC|Your house is ______ ours.|bigger than~more big than~biger than~big than|Big → gấp đôi phụ âm cuối: bigger than.
+A|st|ST|My car is slower than yours. → Your car is ______ mine.|faster than|Slower than ↔ faster than.
+A|mc|MC|He came ______ than me yesterday.|earlier~more early~earliest~early|Early → y đổi thành i + er = earlier.
+B|mc|MC|He is ______ intelligent than her.|more~most~much~very|Intelligent là tính từ dài → more + adj + than.
+B|fb|FB|This exercise is ______ (difficult) than the previous one.|more difficult|Difficult dài → more difficult than.
+B|mc|MC|An sings ______ than Binh.|more beautifully~beautifullier~more beautiful~most beautifully|Trạng từ dài: more + adv + than.
+B|cs|CS|Choose the correct sentence.|My mom drives more carefully than my dad.~My mom drives carefulier than my dad.~My mom drives more careful than my dad.~My mom drives most carefully than my dad.|Bổ nghĩa cho động từ dùng trạng từ: more carefully.
+B|ec|EC|Find the error: This book is more interesting that that one.|that → than~more → most~interesting → interestinger~is → are|So sánh hơn dùng "than", không dùng "that".
+B|ar|AR|Arrange the words.|My car is more expensive than yours.|S + be + more + adj + than + pronoun.
+B|fb|FB|Maths is ______ (interesting) than history for me.|more interesting|Interesting có 3 âm tiết → more interesting.
+B|tf|TF|Beautiful là tính từ dài nên so sánh hơn là "more beautiful".|True|Tính từ dài thêm more, không thêm -er.
+B|st|ST|This phone is cheaper than that one. → That phone is ______ this one.|more expensive than|Cheaper ↔ more expensive than.
+B|mc|MC|Please speak ______ than before.|more slowly~slowlier~more slowlier~slowly|Trạng từ dài: more slowly than.
+C|mc|MC|Comparative của "big" là:|bigger~biger~bigier~more big|1 nguyên âm giữa 2 phụ âm → gấp đôi phụ âm: bigger.
+C|mc|MC|Comparative của "hot" là:|hotter~hoter~hotier~more hot|Hot: phụ âm-nguyên âm-phụ âm → hotter.
+C|fb|FB|Exercise makes you ______ (thin).|thinner|Thin → thinner (gấp đôi n).
+C|mc|MC|Comparative của "pretty" là:|prettier~prettyer~more pretty~pretier|Tận cùng y → i + er: prettier.
+C|mt|MT|Match the irregular forms.|good=better~bad=worse~little=less~many=more|Các dạng bất quy tắc cần nhớ.
+C|mc|MC|Comparative của "far" là:|farther / further~more far~farer~farrer|Far → farther/further → the farthest/the furthest.
+C|fb|FB|This exam is ______ (bad) than the last one.|worse|Bad/badly → worse → the worst.
+C|mc|MC|Superlative của "good" là:|the best~the goodest~the most good~the better|Good → better → the best.
+C|tf|TF|"more superior" là cách nói đúng ngữ pháp.|False|Superior đã mang nghĩa so sánh, không thêm more.
+C|mc|MC|For babies, breastfeeding is superior ______ bottle-feeding.|to~than~as~from|Superior/inferior/senior/junior đi với "to", không dùng "than".
+D|mc|MC|There are ______ people in New York City than in Seattle.|more~less~much~little|People đếm được: more + plural noun + than.
+D|mc|MC|Dan drinks ______ coffee than tea.|less~fewer~many~a few|Coffee không đếm được → less + N + than.
+D|fb|FB|Jerry lost as ______ money as Tim (did).|much|Money không đếm được → as much … as.
+D|mc|MC|She has ______ friends than I do.|fewer~less~little~lesser|Friends đếm được số nhiều → fewer.
+D|cs|CS|Choose the correct sentence.|Dan drinks less coffee than tea.~Dan drinks fewer coffee than tea.~Dan drinks many coffee than tea.~Dan drinks as many coffee as tea.|Coffee không đếm được nên dùng less.
+D|mc|CH|Jerry lost $500. Tim lost $500. Choose the correct sentence.|Jerry lost as much money as Tim.~Jerry lost as many money as Tim.~Jerry lost as more money as Tim.~Jerry lost as much money than Tim.|Money không đếm được, so sánh bằng: as much … as.
+D|ec|EC|Find the error: There are less students in my class than in yours.|less → fewer~students → student~than → then~in → on|Students đếm được → fewer.
+D|mc|MC|Our class has ______ students as yours.|as many~as much~much~many as|Students đếm được → as many … as.
+E|mc|MC|His speech this year is ______ impressive than last year's.|less~least~fewer~lesser|So sánh kém: less + adj + than.
+E|fb|FB|This book is less ______ (expensive) than that one.|expensive|Sau less dùng nguyên dạng tính từ.
+E|st|ST|This car is more expensive than that one. → That car is ______ expensive than this one.|less|More expensive ↔ less expensive.
+E|mc|MC|She drives ______ carefully than her brother.|less~least~fewer~lesser|Trạng từ: less carefully than.
+E|tf|TF|"This exam is less difficult than that one." là câu đúng ngữ pháp.|True|Less + adj + than là so sánh kém.
+E|ar|AR|Arrange the words.|This book is less interesting than that one.|S + be + less + adj + than + N.
+E|mc|CH|Which sentence means the same as "Tom is less tall than Ann"?|Ann is taller than Tom.~Tom is taller than Ann.~Ann is shorter than Tom.~Tom is not so short as Ann.|Tom thấp hơn Ann nên Ann taller than Tom.
+F|mc|MC|An is ______ his brother.|as tall as~as taller as~as tall than~tall as|Khẳng định: as + adj + as.
+F|fb|FB|Mai sings as ______ (beautiful) as Hang.|beautifully|Bổ nghĩa động từ sings → trạng từ beautifully.
+F|mc|MC|Hung doesn't run ______ fast as me.|as~more~than~very|Phủ định: not as + adj/adv + as.
+F|cs|CS|Choose the correct sentence.|Today is not so hot as yesterday.~Today is not so hot than yesterday.~Today is no so hot as yesterday.~Today is not hot so as yesterday.|Not so … as dùng được thay cho not as … as.
+F|tf|TF|"Today is not as hot as yesterday" = "Today is not so hot as yesterday".|True|Phủ định có thể thay as đầu tiên bằng so.
+F|tf|TF|Câu khẳng định có thể thay as…as bằng so…as: "An is so tall as his brother."|False|KHÔNG thay as…as bằng so…as ở câu khẳng định.
+F|fb|FB|Lan is 15 years old. Mai is 15 years old. → Lan is as old ______ Mai.|as|Cấu trúc as + adj + as.
+F|ec|EC|Find the error: My school is as high than his.|than → as~high → higher~is → are~as → so|So sánh bằng: as … as.
+F|ar|AR|Arrange the words.|Nam runs as fast as Binh.|S + V + as + adv + as + O.
+F|mc|CH|Choose the INCORRECT sentence.|Your dog is as not pretty as mine.~Your dog is not as pretty as mine.~Your dog is not so pretty as mine.~Your dog isn't as pretty as mine.|Phủ định phải là not as … as.
+G|mc|MC|The brown car is the same price ______ the white one.|as~like~than~to|Dùng "the same … as".
+G|mc|CS|Choose the correct sentence.|My school is the same height as his.~My school is the same height like his.~My school is same height as his.~My school is the same height than his.|Dùng the same + noun + as, không dùng "the same like".
+G|fb|FB|This bag is the same size ______ that one.|as|the same + noun + as.
+G|st|ST|My school is as high as his. → My school is the same ______ as his.|height|as high as = the same height as.
+G|tf|TF|"The same like" là cấu trúc đúng.|False|Phải dùng "the same as".
+H|mc|MC|Binh is the ______ runner in my class.|fastest~faster~fast~most fast|Tính từ ngắn: the + adj-est.
+H|mc|MC|Nam is the ______ outstanding student in our class.|most~more~much~mostly|Tính từ dài: the most + adj.
+H|mc|MC|She is the tallest girl ______ the group.|in~of~to~than|Nhóm/số ít dùng "in".
+H|mc|MC|He is the tallest ______ the three boys.|of~in~than~at|Danh từ số nhiều xác định dùng "of".
+H|mc|MC|She is one of the best ______ in the class.|students~student~studying~a student|One of the + so sánh nhất + danh từ số nhiều.
+H|ec|EC|Find the error: She is one of the best student in the class.|student → students~best → better~one → once~in → of|Sau one of the + superlative, danh từ ở số nhiều.
+H|fb|FB|This is the ______ (beautiful) place in Vietnam.|most beautiful|Tính từ dài: the most + adj.
+H|mc|MC|He is the greatest ______.|by far~very far~much by~by many|So sánh nhất bổ nghĩa bằng much hoặc by far.
+H|fb|FB|My brother is the ______ (old) child in our family.|oldest~eldest|Old → older/elder → the oldest/the eldest.
+H|cs|CS|Choose the correct sentence.|It is the biggest house in the street.~It is the most big house in the street.~It is biggest house in the street.~It is the bigger house in the street.|Big ngắn → the biggest.
+I|mc|MC|The sooner you finish your homework, the ______ time you have to relax.|more~most~much~many|Câu so sánh kép: The + comparative …, the + comparative …
+I|mc|MC|The more you exercise, the ______ you become.|thinner~thin~more thin~thinnest|Vế sau dùng so sánh hơn của tính từ ngắn: thinner.
+I|fb|FB|The ______ (hard) you study, the better your results are.|harder|The + adj-er …, the + comparative …
+I|mc|CH|The more carefully you work, ______ your results are.|the better~the best~the well~more good|Trạng từ dài ở vế trước; vế sau the better.
+I|cs|CS|Choose the correct sentence.|The more you study, the smarter you will become.~The more you study, the more smart you will become.~The most you study, the smarter you will become.~More you study, smarter you will become.|Smart ngắn → the smarter.
+I|st|ST|If you study more, you will become smarter. → The more you study, the ______ you will become.|smarter|Vế sau: the + comparative.
+I|ar|AR|Arrange the words.|The more you practice, the better you become.|The more + S + V, the + comparative + S + V.
+I|tf|TF|Sau "The more" ở vế đầu có thể có "that" hoặc không.|True|The more (that) you study, the smarter you will become.
+J|mc|MC|The weather is getting ______.|hotter and hotter~more hot and more hot~hot and hot~hotter and more hot|Tính từ ngắn: adj-er and adj-er.
+J|mc|MC|Her story was ______.|more and more attractive~attractive and attractive~more attractive and attractive~most attractive|Tính từ dài: more and more + adj.
+J|fb|FB|It's becoming ______ to find a job. (hard)|harder and harder|Tính từ ngắn: harder and harder.
+J|fb|FB|The city is getting ______ crowded.|more and more|Tính từ dài: more and more + adj.
+J|ec|EC|Find the error: Her story was more attractive and more attractive.|more attractive and more attractive → more and more attractive~was → were~Her → She~attractive → attractively|Tính từ dài không lặp cả cụm, dùng more and more + adj.
+K|mc|MC|My friend runs ______ me.|twice as fast as~twice as fast than~twice faster than~as twice fast as|Cấu trúc: multiple number + as + adv + as.
+K|fb|FB|Petrol is twice as ______ (expensive) as it was before.|expensive|twice as + adj + as.
+K|mc|MC|This room has three times ______ people as that one.|as many~as much~more many~times many|People đếm được → as many … as.
+K|fb|FB|My bag weighs 6 kg. Your bag weighs 3 kg. → My bag is ______ as heavy as yours.|twice|6 kg gấp đôi 3 kg → twice as heavy as.
+K|mc|CH|We had expected 80 people, but ______ showed up.|twice that many~twice as that many~two times that much~twice more many|Twice that many = twice as many as that number (văn nói).
+L|mc|MC|I enjoyed Sunday mornings ______ more as Sue used to come round.|all the~very~much the~so the|All the more = càng … hơn.
+L|mc|MC|He explained it carefully, but I was still none the ______.|wiser~more wise~wisest~wise|None the + comparative = chẳng chút nào.
+L|mc|MC|He didn't seem to be any the ______ for his experience.|worse~worst~badly~bad|Not … any the worse = chẳng tệ hơn chút nào.
+L|mc|CH|Jerry lost as much money as Tim did. Which word can be omitted?|did~Jerry~lost~money|Động từ sau as/than có thể được lược bỏ khi trùng mệnh đề trước.
+L|mc|CS|Choose the grammatically correct sentence.|Their marriage was as stormy as had been expected.~Their marriage was as stormy as was been expected.~Their marriage was as stormy than had been expected.~Their marriage was stormy as had been expected.|Sau as có thể bỏ chủ ngữ (it): as had been expected.
+L|mc|MC|My brother is ______ me by two years.|senior to~more senior than~senior than~most senior to|Senior/junior đi với "to", không thêm more hay than.
+L|ec|EC|Find the error: She gets her meat from the same butcher like I go to.|like → as~gets → get~same → sames~from → by|Dùng the same … as, không dùng the same like.`;
+const PAT=[1,2,1,2,3,1,2,2,1,3,2,1,2,2,3,1,2,4,1,2];
+const DL=["","Easy","Medium","Hard","Super Hard"];
+const sh=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const norm=s=>s.toLowerCase().replace(/[.,!?]/g,"").replace(/\s+/g," ").trim();
+const QS=RAW.split("\n").map((l,i)=>{const [c,t,lb,q,a,e]=l.split("|");return{n:i+1,c,t,lb,q,a,e,d:PAT[i%20]}});
+const $=id=>document.getElementById(id),app=$("app");
+let S,qi,score,streak,best,locked,tleft,tmr,qstart,log,t0,ans;
+let AC;function snd(f,d=.15,ty="sine"){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.value=f;g.gain.value=.12;o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}catch(e){}}
+const sOK=()=>{snd(660);setTimeout(()=>snd(880),120)},sNO=()=>{snd(200,.3,"sawtooth")};
+function confetti(){const c=["#ffb703","#3b5bdb","#2fb344","#e03131","#ae3ec9"];for(let i=0;i<40;i++){const d=document.createElement("i");d.className="cf";d.style.left=Math.random()*100+"vw";d.style.background=c[i%5];d.style.animationDelay=Math.random()*.4+"s";document.body.appendChild(d);setTimeout(()=>d.remove(),2200)}}
+function home(){clearInterval(tmr);app.innerHTML=`<div class="card center"><div class="big">🏆</div><h1>COMPARISON MASTER</h1><h2>CÂU SO SÁNH – ENGLISH 9</h2><p>100 QUESTIONS CHALLENGE<br>⏱️ 45 giây mỗi câu · 🔥 Giữ streak để nhận thưởng</p><button class="btn" onclick="start()">🚀 START GAME</button></div>`}
+function start(){qi=0;score=0;streak=0;best=0;log=[];t0=Date.now();show()}
+function show(){
+ const q=QS[qi];locked=false;ans=null;
+ q.opts=q.t==="mc"||q.t==="cs"||q.t==="ec"?sh(q.a.split("~")):q.t==="tf"?["True","False"]:null;
+ let body="";
+ if(q.opts)body=q.opts.map((o,i)=>`<button class="opt" onclick="pick(${i})">${String.fromCharCode(65+i)}. ${o}</button>`).join("");
+ else if(q.t==="fb"||q.t==="st")body=`<input class="txt" id="inp" autocomplete="off" autocapitalize="off" placeholder="Type your answer…" onkeydown="if(event.key==='Enter')check()"><button class="btn" onclick="check()">✔ Check</button>`;
+ else if(q.t==="ar"){q.tk=sh(q.a.replace(/[.]/g,"").toLowerCase().split(" "));ans=[];body=`<div class="ans" id="ans"></div><div id="tks">${q.tk.map((w,i)=>`<span class="tok" id="t${i}" onclick="addT(${i})">${w}</span>`).join("")}</div><button class="btn alt" onclick="ans=[];drawA()">↺ Reset</button><button class="btn" onclick="check()">✔ Check</button>`}
+ else if(q.t==="mt"){const p=q.a.split("~").map(x=>x.split("="));q.p=p;const r=sh(p.map(x=>x[1]));body=p.map((x,i)=>`<div class="mrow"><b>${x[0]}</b><select id="m${i}"><option value="">— choose —</option>${r.map(o=>`<option>${o}</option>`).join("")}</select></div>`).join("")+`<button class="btn" onclick="check()">✔ Check</button>`}
+ app.innerHTML=`<div class="card"><div class="top"><span>Question ${q.n} / 100</span><span>⭐ Score: ${score}</span><span>🔥 Streak: ${streak}</span></div><div class="bar"><i style="width:${(q.n-1)}%"></i></div><div class="timer"><i id="tb"></i></div><div class="top" style="margin-top:6px"><span><span class="tag">${LB[q.lb]}</span><span class="tag">${DL[q.d]}</span></span><span id="tt">⏱️ 45</span></div><div class="q">${q.q}</div>${body}<div id="fb"></div></div>`;
+ if($("inp"))$("inp").focus();
+ tleft=45;qstart=Date.now();clearInterval(tmr);tmr=setInterval(tick,100);
+}
+function tick(){const el=45-(Date.now()-qstart)/1000;if(el<=0){$("tb").style.width="0";end(false,"⏰ Hết giờ!",true);return}$("tb").style.width=el/45*100+"%";$("tb").style.background=el<5?"#e03131":"#2fb344";$("tt").textContent="⏱️ "+Math.ceil(el);const c=$("cd");if(el<=3){c.style.display="flex";c.textContent=Math.ceil(el)}else c.style.display="none"}
+function pick(i){if(locked)return;ans=QS[qi].opts[i];const q=QS[qi];const ok=ans===(q.t==="tf"?q.a:q.a.split("~")[0]);document.querySelectorAll(".opt").forEach((b,k)=>{b.disabled=true;const o=q.opts[k];if(o===(q.t==="tf"?q.a:q.a.split("~")[0]))b.classList.add("ok");else if(k===i)b.classList.add("no")});end(ok)}
+function addT(i){if(locked)return;ans.push(i);drawA()}
+function drawA(){const q=QS[qi];$("ans").innerHTML=ans.map(i=>`<span class="tok">${q.tk[i]}</span>`).join("");q.tk.forEach((w,i)=>$("t"+i).classList.toggle("used",ans.includes(i)))}
+function check(){if(locked)return;const q=QS[qi];let ok=false;
+ if(q.t==="fb"||q.t==="st"){ans=$("inp").value;if(!ans.trim())return;ok=q.a.split("~").some(a=>norm(a)===norm(ans));$("inp").disabled=true}
+ else if(q.t==="ar"){ans=ans.map(i=>q.tk[i]).join(" ");if(!ans)return;ok=norm(ans)===norm(q.a)}
+ else if(q.t==="mt"){const v=q.p.map((x,i)=>$("m"+i).value);if(v.includes(""))return;ans=v.join(", ");ok=v.every((x,i)=>x===q.p[i][1]);q.p.forEach((x,i)=>$("m"+i).disabled=true)}
+ end(ok)}
+function corr(q){return q.t==="mt"?q.p.map(x=>x.join(" → ")).join(", "):q.t==="ar"?q.a:q.t==="tf"?q.a:q.a.split("~")[0]}
+function end(ok,msg,timeout){
+ if(locked)return;locked=true;clearInterval(tmr);$("cd").style.display="none";
+ const q=QS[qi],used=(Date.now()-qstart)/1000;let pts=0,extra="";
+ if(ok){streak++;best=Math.max(best,streak);pts=10;if(used<=20){pts+=5;extra+=" ⚡+5 nhanh (≤20s)"}if(streak===3){pts+=10;extra+=" 🔥+10 (3 liên tiếp)"}if(streak>0&&streak%5===0){pts+=20;extra+=" 🔥+20 ("+streak+" liên tiếp)"}score+=pts;sOK();confetti()}
+ else{streak=0;sNO()}
+ if(timeout)document.querySelectorAll(".opt").forEach((b,k)=>{b.disabled=true;if(q.opts[k]===corr(q))b.classList.add("ok")});
+ if(timeout&&$("inp"))$("inp").disabled=true;
+ log.push({q,ans:ans==null?"(no answer)":ans,ok});
+ $("fb").innerHTML=`<div class="fb ${ok?"ok":"no"}">${ok?`<h3>🎉 CORRECT!</h3>+${pts} POINTS${extra}<br>🔥 STREAK x${streak}`:`<h3>${msg||"❌ WRONG!"}</h3>${streak===0&&log.length>1?"Streak reset!<br>":""}`}<p>✅ Correct answer: <b>${corr(q)}</b></p><p>💡 Explanation: ${q.e}</p></div><div class="center"><button class="btn" onclick="next()">${qi===99?"🏁 Finish":"Next ➜"}</button></div>`;
+ $("fb").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function next(){qi++;if(qi>=100)result();else show()}
+function stars(p){return"⭐".repeat(Math.max(1,Math.round(p*5)))}
+function result(){
+ const ok=log.filter(x=>x.ok).length,acc=Math.round(ok),secs=Math.round((Date.now()-t0)/1000);
+ const g=acc>=90?"🏆 COMPARISON MASTER":acc>=80?"🌟 EXCELLENT":acc>=70?"👍 GOOD JOB":acc>=50?"💪 KEEP PRACTICING":"📚 LET'S REVIEW";
+ const by={};log.forEach(x=>{const k=GRP[x.q.c];by[k]=by[k]||[0,0];by[k][1]++;if(x.ok)by[k][0]++});
+ const wt={};log.filter(x=>!x.ok).forEach(x=>wt[LB[x.q.lb]]=(wt[LB[x.q.lb]]||0)+1);
+ const wl=Object.entries(wt).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>`${x[0]} (${x[1]})`).join(", ")||"Không có 🎉";
+ app.innerHTML=`<div class="card center"><div class="big">🏆</div><h1>CONGRATULATIONS!</h1><h2>${g}</h2><p style="font-size:26px">Your Score: <b>${score}</b> <small>(max base 1000)</small></p><p style="font-size:26px">${stars(ok/100)}</p>
+ <div class="stats"><div class="stat"><b>100</b>Tổng số câu</div><div class="stat"><b>${ok}</b>Đúng</div><div class="stat"><b>${100-ok}</b>Sai</div><div class="stat"><b>${acc}%</b>Accuracy</div><div class="stat"><b>${best}</b>Streak cao nhất</div><div class="stat"><b>${Math.floor(secs/60)}:${String(secs%60).padStart(2,"0")}</b>Thời gian</div></div>
+ <h3>📊 YOUR PERFORMANCE</h3>${Object.entries(by).map(([k,v])=>`<div class="row"><span>${k}</span><span>${stars(v[0]/v[1])} ${v[0]}/${v[1]}</span></div>`).join("")}
+ <p>❗ Dạng sai nhiều nhất: <b>${wl}</b></p>
+ <button class="btn" onclick="start()">🔄 PLAY AGAIN</button><button class="btn alt" onclick="review()">📖 REVIEW ANSWERS</button></div>`;
+ if(acc>=70)confetti();
+}
+function review(){app.innerHTML=`<div class="card"><h2>📖 Review Answers</h2>${log.map(x=>`<div class="rev"><b>Question ${x.q.n}</b> ${x.ok?"✅":"❌"}<br>${x.q.q}<br>Your answer: ${x.ans}<br>Correct answer: <b>${corr(x.q)}</b><br>💡 ${x.q.e}</div>`).join("")}<div class="center"><button class="btn" onclick="start()">🔄 PLAY AGAIN</button><button class="btn alt" onclick="result()">⬅ Back</button></div></div>`;window.scrollTo(0,0)}
+home();
+</script>
+</body>
+</html>
